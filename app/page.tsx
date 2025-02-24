@@ -85,7 +85,7 @@ const styles = {
     maxWidth: '800px',
     margin: '0 auto',
     padding: '2rem',
-    textAlign: 'center' as 'center',
+    textAlign: 'center' as const,
     fontFamily: 'Arial, sans-serif',
     backgroundColor: '#f9f9f9',
     borderRadius: '8px',
