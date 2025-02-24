@@ -20,13 +20,11 @@ export async function POST(request: NextRequest) {
     fs.writeFileSync(inputPath, Buffer.from(buffer));
 
     // Detect HDR metadata
-    const { isHDR, colorPrimaries } = await new Promise<any>((resolve, reject) => {
+    const isHDR = await new Promise<boolean>((resolve, reject) => {
       ffmpeg.ffprobe(inputPath, (err, metadata) => {
         if (err) reject(err);
-        resolve({
-          isHDR: metadata.streams[0].color_primaries === 'bt2020',
-          colorPrimaries: metadata.streams[0].color_primaries
-        });
+        const colorPrimaries = metadata.streams[0].color_primaries;
+        resolve(colorPrimaries === 'bt2020');
       });
     });
 
