@@ -7,60 +7,72 @@ import fs from 'fs';
 import path from 'path';
 
 export async function POST(request: NextRequest) {
-  const { videoUrl } = await request.json();
+  try {
+    const { videoUrl } = await request.json();
 
-  // Download the video from Firebase Storage
-  const inputPath = path.join('/tmp', 'input.mp4'); // Temporary file path
-  const outputPath = path.join('/tmp', 'output.mp4'); // Output file path
+    // Temporary file paths
+    const inputPath = path.join('/tmp', `input_${Date.now()}.mp4`);
+    const outputPath = path.join('/tmp', `output_${Date.now()}.mp4`);
 
-  // Download the video
-  const response = await fetch(videoUrl);
-  const buffer = await response.arrayBuffer();
-  fs.writeFileSync(inputPath, Buffer.from(buffer));
+    // Download video
+    const response = await fetch(videoUrl);
+    const buffer = await response.arrayBuffer();
+    fs.writeFileSync(inputPath, Buffer.from(buffer));
 
-  // Check if the video is HDR
-  const isHDR = await new Promise<boolean>((resolve, reject) => {
-    ffmpeg.ffprobe(inputPath, (err, metadata) => {
-      if (err) {
-        reject(err);
-      } else {
-        const colorPrimaries = metadata.streams[0].color_primaries;
-        resolve(colorPrimaries === 'bt2020');
-      }
+    // Detect HDR metadata
+    const { isHDR, colorPrimaries } = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(inputPath, (err, metadata) => {
+        if (err) reject(err);
+        resolve({
+          isHDR: metadata.streams[0].color_primaries === 'bt2020',
+          colorPrimaries: metadata.streams[0].color_primaries
+        });
+      });
     });
-  });
 
-  // Trim silences using FFmpeg and handle HDR video if necessary
-  await new Promise((resolve, reject) => {
-    const command = ffmpeg(inputPath)
-      .audioFilters('silenceremove=start_periods=1') // Remove silences
-      .videoCodec('libx264') // Use H.264 codec for SDR support
-      .audioCodec('aac'); // Use AAC codec for audio
-
-    if (isHDR) {
-      command
-        .videoCodec('libx265') // Use H.265 codec for HDR support
+    // FFmpeg processing with proper codec handling
+    await new Promise((resolve, reject) => {
+      const command = ffmpeg(inputPath)
+        .audioFilters('silenceremove=start_periods=1:detection=peak') // Better silence detection
+        .videoCodec('libx264') // Force H.264 for better browser compatibility
         .outputOptions([
-          '-pix_fmt yuv420p10le', // Preserve 10-bit color depth
-          '-color_primaries bt2020', // Set color primaries to BT.2020
-          '-color_trc smpte2084', // Set transfer characteristics to SMPTE 2084 (PQ)
-          '-colorspace bt2020nc', // Set color space to BT.2020 non-constant
-        ]);
-    }
+          '-profile:v main', // Standard H.264 profile
+          '-pix_fmt yuv420p', // Universal pixel format
+          '-movflags +faststart', // Web optimization
+          '-vsync vfr', // Handle variable frame rates
+          ...(isHDR ? [
+            '-x264-params "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc"',
+            '-preset slow -crf 18' // Higher quality for HDR
+          ] : [
+            '-color_primaries bt709 -color_trc bt709 -colorspace bt709' // SDR standards
+          ])
+        ])
+        .on('progress', (p) => console.log(`Processing: ${Math.round(p.percent ?? 0)}%`))
+        .on('end', resolve)
+        .on('error', (err) => {
+          console.error('FFmpeg error:', err);
+          reject(err);
+        })
+        .save(outputPath);
+    });
 
-    command
-      .on('end', resolve) // Resolve when done
-      .on('error', reject) // Reject on error
-      .save(outputPath); // Save the output
-  });
+    // Upload processed video
+    const outputFile = fs.readFileSync(outputPath);
+    const storageRef = ref(storage, `videos/trimmed-${Date.now()}.mp4`);
+    await uploadBytes(storageRef, outputFile);
 
-  // Upload the trimmed video back to Firebase Storage
-  const outputFile = fs.readFileSync(outputPath);
-  const storageRef = ref(storage, `videos/trimmed-${Date.now()}.mp4`);
-  await uploadBytes(storageRef, outputFile);
+    // Cleanup temp files
+    [inputPath, outputPath].forEach(p => fs.existsSync(p) && fs.unlinkSync(p));
 
-  // Get the download URL for the trimmed video
-  const downloadURL = await getDownloadURL(storageRef);
+    return NextResponse.json({ 
+      downloadURL: await getDownloadURL(storageRef) 
+    });
 
-  return NextResponse.json({ downloadURL });
+  } catch (error) {
+    console.error('Processing failed:', error);
+    return NextResponse.json(
+      { error: 'Video processing failed' },
+      { status: 500 }
+    );
+  }
 }
