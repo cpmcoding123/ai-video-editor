@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
   // Trim silences using FFmpeg and handle HDR video if necessary
   await new Promise((resolve, reject) => {
     const command = ffmpeg(inputPath)
-      .audioFilters('silenceremove=start_periods=1'); // Remove silences
+      .audioFilters('silenceremove=start_periods=1') // Remove silences
+      .videoCodec('libx264') // Use H.264 codec for SDR support
+      .audioCodec('aac'); // Use AAC codec for audio
 
     if (isHDR) {
       command

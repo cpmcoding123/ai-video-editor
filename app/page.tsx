@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { storage } from '../lib/firebase';
 
 export default function Home() {
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [trimmedVideoUrl, setTrimmedVideoUrl] = useState<string | null>(null);
 
