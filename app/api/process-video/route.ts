@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // FFmpeg processing with proper codec handling
     await new Promise((resolve, reject) => {
-      const command = ffmpeg(inputPath)
+      ffmpeg(inputPath)
         .audioFilters('silenceremove=start_periods=1:detection=peak') // Better silence detection
         .videoCodec('libx264') // Force H.264 for better browser compatibility
         .outputOptions([

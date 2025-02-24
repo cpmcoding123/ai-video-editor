@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { storage } from '../lib/firebase';
 
 export default function Home() {
-  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [trimmedVideoUrl, setTrimmedVideoUrl] = useState<string | null>(null);
 
@@ -58,9 +57,6 @@ export default function Home() {
       <label htmlFor="file-upload" style={styles.uploadButton}>
         Upload Video
       </label>
-      {videoFile && (
-        <p style={styles.selectedFile}>Selected: {videoFile.name}</p>
-      )}
       {uploadProgress > 0 && (
         <div style={styles.progressContainer}>
           <progress value={uploadProgress} max="100" style={styles.progressBar} />
@@ -84,14 +80,12 @@ export default function Home() {
   );
 }
 
-import { CSSProperties } from 'react';
-
-const styles: { [key: string]: CSSProperties } = {
+const styles = {
   container: {
     maxWidth: '800px',
     margin: '0 auto',
     padding: '2rem',
-    textAlign: 'center',
+    textAlign: 'center' as 'center',
     fontFamily: 'Arial, sans-serif',
     backgroundColor: '#f9f9f9',
     borderRadius: '8px',
@@ -118,11 +112,6 @@ const styles: { [key: string]: CSSProperties } = {
   },
   uploadButtonHover: {
     backgroundColor: '#005bb5',
-  },
-  selectedFile: {
-    marginTop: '1rem',
-    fontSize: '1rem',
-    color: '#555',
   },
   progressContainer: {
     marginTop: '1rem',
