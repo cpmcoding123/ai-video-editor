@@ -46,20 +46,45 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>AI Video Editor</h1>
-      <input type="file" accept="video/*" onChange={handleFileUpload} />
-      {videoFile && <p>Selected: {videoFile.name}</p>}
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>AI Video Editor</h1>
+      <input
+        type="file"
+        accept="video/*"
+        onChange={handleFileUpload}
+        style={{ display: 'none' }}
+        id="file-upload"
+      />
+      <label
+        htmlFor="file-upload"
+        style={{
+          display: 'inline-block',
+          padding: '0.5rem 1rem',
+          backgroundColor: '#0070f3',
+          color: 'white',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
+      >
+        Upload Video
+      </label>
+      {videoFile && (
+        <p style={{ marginTop: '1rem' }}>Selected: {videoFile.name}</p>
+      )}
       {uploadProgress > 0 && (
-        <div>
-          <progress value={uploadProgress} max="100" />
+        <div style={{ marginTop: '1rem' }}>
+          <progress value={uploadProgress} max="100" style={{ width: '100%' }} />
           <p>{uploadProgress}% uploaded</p>
         </div>
       )}
       {trimmedVideoUrl && (
-        <div>
+        <div style={{ marginTop: '2rem' }}>
           <p>Trimmed Video:</p>
-          <video src={trimmedVideoUrl} controls style={{ width: '100%' }} />
+          <video
+            src={trimmedVideoUrl}
+            controls
+            style={{ width: '100%', marginTop: '1rem', borderRadius: '8px' }}
+          ></video>
           <a href={trimmedVideoUrl} download="trimmed-video.mp4">Download Trimmed Video</a>
         </div>
       )}
